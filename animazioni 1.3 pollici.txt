@@ -1,0 +1,188 @@
+#include <Wire.h>
+#include <U8x8lib.h>
+
+#define OLED_USE_SH1106 1
+
+#if OLED_USE_SH1106
+U8X8_SH1106_128X64_NONAME_HW_I2C display(U8X8_PIN_NONE);
+#else
+U8X8_SSD1306_128X64_NONAME_HW_I2C display(U8X8_PIN_NONE);
+#endif
+
+constexpr uint8_t P_DORME = 2;
+constexpr uint8_t P_ALZA  = 3;
+
+const uint16_t FRAME_DELAY = 650;
+const uint16_t WALK_DELAY = 280;
+
+void setup() {
+  pinMode(P_DORME, INPUT_PULLUP);
+  pinMode(P_ALZA, INPUT_PULLUP);
+
+  Wire.begin();
+
+  display.begin();
+  display.setPowerSave(0);
+  display.setFont(u8x8_font_chroma48medium8_r);
+
+  showHome();
+}
+
+void loop() {
+  if (digitalRead(P_DORME) == LOW) {
+    animazioneDorme();
+  }
+
+  if (digitalRead(P_ALZA) == LOW) {
+    animazioneSiAlza();
+  }
+}
+
+void showHome() {
+  display.clearDisplay();
+  display.drawString(0, 2, "D2: dorme");
+  display.drawString(0, 4, "D3: si alza");
+}
+
+void clearFrame() {
+  display.clearDisplay();
+}
+
+void drawLetto() {
+  display.drawString(1, 5, "============");
+  display.drawString(1, 6, "|__________|");
+  display.drawString(1, 7, "|          |");
+}
+
+void drawUomoInPiedi(uint8_t x) {
+  display.drawString(x, 1, "O");
+
+  if (x > 0) {
+    display.drawString(x - 1, 2, "/|\\");
+  } else {
+    display.drawString(x, 2, "|\\");
+  }
+
+  display.drawString(x, 3, "|");
+
+  if (x > 0) {
+    display.drawString(x - 1, 4, "/ \\");
+  } else {
+    display.drawString(x, 4, "\\");
+  }
+}
+
+void frameDorme1() {
+  clearFrame();
+
+  display.drawString(4, 1, "z");
+  display.drawString(6, 0, "Z");
+
+  display.drawString(3, 4, "O___");
+  display.drawString(2, 5, "/=====");
+
+  drawLetto();
+}
+
+void frameDorme2() {
+  clearFrame();
+
+  display.drawString(5, 1, "z");
+  display.drawString(7, 0, "Z");
+
+  display.drawString(3, 4, "O___");
+  display.drawString(2, 5, "/=====");
+
+  drawLetto();
+}
+
+void frameSiSolleva() {
+  clearFrame();
+
+  display.drawString(4, 1, "o");
+  display.drawString(5, 2, "/|");
+  display.drawString(4, 3, "/ |__");
+
+  drawLetto();
+}
+
+void frameSeduto() {
+  clearFrame();
+
+  display.drawString(5, 1, "O");
+  display.drawString(5, 2, "|\\");
+  display.drawString(5, 3, "| \\");
+  display.drawString(5, 4, "/");
+
+  drawLetto();
+}
+
+void frameScendeDalLetto() {
+  clearFrame();
+
+  display.drawString(7, 1, "O");
+  display.drawString(6, 2, "/|\\");
+  display.drawString(7, 3, "|");
+  display.drawString(6, 4, "/ \\");
+
+  drawLetto();
+}
+
+void frameInPiedi() {
+  clearFrame();
+
+  drawUomoInPiedi(10);
+  drawLetto();
+}
+
+void frameUscitaDestra(uint8_t x) {
+  clearFrame();
+
+  if (x < 16) {
+    drawUomoInPiedi(x);
+  }
+
+  drawLetto();
+}
+
+void animazioneDorme() {
+  while (digitalRead(P_DORME) == LOW) {
+    frameDorme1();
+    delay(FRAME_DELAY);
+
+    if (digitalRead(P_DORME) == HIGH) break;
+
+    frameDorme2();
+    delay(FRAME_DELAY);
+  }
+
+  showHome();
+}
+
+void animazioneSiAlza() {
+  frameDorme1();
+  delay(FRAME_DELAY);
+
+  frameSiSolleva();
+  delay(FRAME_DELAY);
+
+  frameSeduto();
+  delay(FRAME_DELAY);
+
+  frameScendeDalLetto();
+  delay(FRAME_DELAY);
+
+  frameInPiedi();
+  delay(FRAME_DELAY);
+
+  for (uint8_t x = 10; x <= 16; x++) {
+    frameUscitaDestra(x);
+    delay(WALK_DELAY);
+  }
+
+  clearFrame();
+  drawLetto();
+  delay(700);
+
+  showHome();
+}
